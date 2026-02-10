@@ -290,8 +290,8 @@
           </div>
         </div>
         <div class="hero-nav-stack">
-          <div v-if="canShowAds && isPortrait" class="adwork-hero-slot" aria-label="adwork-banner-mobile">
-            <div class="adwork-net adwork-auto" data-id="1050"></div>
+          <div v-if="canShowAds && isPortrait" class="adwork-hero-slot is-ad-soft-hidden" aria-label="adwork-banner-mobile">
+            <div class="adwork-net adwork-auto" data-id="1050" data-placeholder="none"></div>
           </div>
           <nav class="main-nav hero-nav">
           <button 
@@ -880,8 +880,8 @@
             </div>
           </div>
 
-          <div v-if="canShowAds && !isPortrait" class="card scheme-inline-ad-card scheme-inline-ad-top" aria-label="adwork-banner-desktop">
-            <div class="adwork-net adwork-auto" data-id="1050"></div>
+          <div v-if="canShowAds && !isPortrait" class="card scheme-inline-ad-card scheme-inline-ad-top is-ad-soft-hidden" aria-label="adwork-banner-desktop">
+            <div class="adwork-net adwork-auto" data-id="1050" data-placeholder="none"></div>
           </div>
 
           <div v-if="!selectedWeapons.length" class="empty">

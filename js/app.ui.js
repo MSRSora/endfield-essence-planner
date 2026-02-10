@@ -54,19 +54,55 @@
       return rect.width >= 120 && rect.height >= 20;
     };
 
+    const isLikelyPlaceholderNode = (node) => {
+      if (!(node instanceof HTMLElement)) return false;
+      const text = (node.textContent || "").trim();
+      if (text && text.length > 0) {
+        const normalized = text.toLowerCase();
+        if (
+          normalized.includes("广告") ||
+          normalized.includes("ad") ||
+          normalized.includes("placeholder") ||
+          normalized.includes("审核")
+        ) {
+          return true;
+        }
+      }
+      const className = (node.className || "").toString().toLowerCase();
+      if (
+        className.includes("placeholder") ||
+        className.includes("ad-placeholder") ||
+        className.includes("adwork-placeholder")
+      ) {
+        return true;
+      }
+      const bg = window.getComputedStyle(node).backgroundColor;
+      return bg === "rgb(255, 255, 255)" || bg === "rgba(255, 255, 255, 1)";
+    };
+
     const updateAdSlotVisibility = () => {
       if (typeof window === "undefined" || typeof document === "undefined") return;
       const slots = document.querySelectorAll(adSlotSelector);
       slots.forEach((slot) => {
         const container = slot.querySelector(".adwork-net");
+        const richNodes =
+          container instanceof HTMLElement
+            ? Array.from(
+                container.querySelectorAll("iframe, img, ins, object, embed, video, canvas, svg")
+              )
+            : [];
+        const hasRichRenderable = richNodes.some(hasRenderableAdContent);
+        const hasContainerRenderable =
+          container instanceof HTMLElement && hasRenderableAdContent(container);
+        const placeholderLike =
+          container instanceof HTMLElement && !hasRichRenderable && isLikelyPlaceholderNode(container);
         const shouldShow =
           canShowAds.value &&
           container instanceof HTMLElement &&
-          (hasRenderableAdContent(container) ||
-            Array.from(
-              container.querySelectorAll("iframe, img, ins, object, embed, video, canvas, svg")
-            ).some(hasRenderableAdContent));
+          !placeholderLike &&
+          (hasRichRenderable || hasContainerRenderable);
         slot.classList.toggle("is-ad-hidden", !shouldShow);
+        slot.classList.toggle("is-ad-soft-hidden", !shouldShow);
       });
     };
 

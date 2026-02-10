@@ -50,8 +50,43 @@
       }
 
       .adwork-hero-slot.is-ad-hidden,
-      .scheme-inline-ad-top.is-ad-hidden {
-        display: none !important;
+      .scheme-inline-ad-top.is-ad-hidden,
+      .adwork-hero-slot.is-ad-soft-hidden,
+      .scheme-inline-ad-top.is-ad-soft-hidden {
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 4px 8px;
+        border-style: dashed;
+        border-color: rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.02);
+        box-shadow: none;
+        justify-content: center;
+      }
+
+      .adwork-hero-slot.is-ad-hidden .adwork-net,
+      .scheme-inline-ad-top.is-ad-hidden .adwork-net,
+      .adwork-hero-slot.is-ad-soft-hidden .adwork-net,
+      .scheme-inline-ad-top.is-ad-soft-hidden .adwork-net {
+        min-height: 0;
+        height: 0;
+        max-height: 0;
+        overflow: hidden;
+      }
+
+      .adwork-hero-slot.is-ad-hidden::before,
+      .scheme-inline-ad-top.is-ad-hidden::before,
+      .adwork-hero-slot.is-ad-soft-hidden::before,
+      .scheme-inline-ad-top.is-ad-soft-hidden::before {
+        content: "广告位";
+        font-size: 11px;
+        line-height: 1;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(214, 225, 238, 0.58);
+        text-align: center;
+        display: block;
+        width: 100%;
       }
 
       @media (max-width: 640px) {
