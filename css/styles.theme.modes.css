@@ -594,6 +594,13 @@
   border-color: rgba(22, 44, 72, 0.14);
 }
 
+[data-theme="light"] .strategy-loading,
+[data-theme="light"] .strategy-empty {
+  background: rgba(245, 250, 255, 0.94);
+  border-color: rgba(22, 44, 72, 0.14);
+  color: #4a6078;
+}
+
 [data-theme="light"] .detail-section h3,
 [data-theme="light"] .detail-section h4,
 [data-theme="light"] .detail-section strong,
