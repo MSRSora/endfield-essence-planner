@@ -177,22 +177,22 @@
     i18nState.locale = locale.value;
 
     const showAiNotice = computed(() => locale.value !== "zh-CN");
+    const seoTitle = "终末地基质规划器 (Endfield Essence Planner)";
+    const seoDescription =
+      "终末地基质规划器：根据附加/技能属性池与锁定规则，自动计算多武器共刷方案，提供基础属性冲突提示与可刷数量参考，适配移动端。 Endfield Essence Planner: plan efficient shared dungeon farming across multiple weapons with lock rules, trait pools, base-attribute conflict hints, and mobile-friendly guidance.";
+    const seoSiteName = "终末地基质规划器 (Endfield Essence Planner)";
 
     const updateMeta = () => {
       if (typeof document === "undefined") return;
-      const title = t("终末地基质规划器 (Endfield Essence Planner)");
-      const description = t(
-        "终末地基质规划器：根据附加/技能属性池与锁定规则，自动计算多武器共刷方案，提供基础属性冲突提示与可刷数量参考，适配移动端。"
-      );
-      document.title = title;
+      document.title = seoTitle;
       const metaDesc = document.querySelector('meta[name=\"description\"]');
-      if (metaDesc) metaDesc.setAttribute("content", description);
+      if (metaDesc) metaDesc.setAttribute("content", seoDescription);
       const ogTitle = document.querySelector('meta[property=\"og:title\"]');
-      if (ogTitle) ogTitle.setAttribute("content", title);
+      if (ogTitle) ogTitle.setAttribute("content", seoTitle);
       const ogDesc = document.querySelector('meta[property=\"og:description\"]');
-      if (ogDesc) ogDesc.setAttribute("content", description);
+      if (ogDesc) ogDesc.setAttribute("content", seoDescription);
       const ogSiteName = document.querySelector('meta[property=\"og:site_name\"]');
-      if (ogSiteName) ogSiteName.setAttribute("content", t("终末地基质规划器"));
+      if (ogSiteName) ogSiteName.setAttribute("content", seoSiteName);
     };
 
     const updatePreloadText = () => {
