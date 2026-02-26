@@ -127,6 +127,33 @@
     const hasAttributeFilterSelection = () =>
       Boolean(state.filterS1.value.length || state.filterS2.value.length || state.filterS3.value.length);
 
+    const translate = (key, params) => {
+      if (typeof state.t === "function") {
+        return state.t(key, params);
+      }
+      if (!params) return key;
+      return key.replace(/\{(\w+)\}/g, (match, token) =>
+        Object.prototype.hasOwnProperty.call(params, token) ? String(params[token]) : match
+      );
+    };
+
+    const buildHiddenReasonKeys = (flags) => {
+      const keys = [];
+      if (flags.hiddenByUnowned) keys.push("unowned");
+      if (flags.hiddenByEssenceOwned) keys.push("essenceOwned");
+      if (flags.hiddenByFourStar) keys.push("fourStar");
+      return keys;
+    };
+
+    const formatHiddenReasons = (reasonKeys) =>
+      reasonKeys
+        .map((key) => {
+          if (key === "unowned") return translate("未拥有");
+          if (key === "essenceOwned") return translate("基质已有");
+          return translate("四星");
+        })
+        .join(" / ");
+
     const getSelectorHiddenFlags = (weapon, config) => {
       const weaponOwned = isWeaponOwned(weapon.name);
       const essenceOwned = isEssenceOwned(weapon.name);
@@ -159,14 +186,17 @@
       if (!weapon) return "";
       const config = state.recommendationConfig.value || {};
       const flags = getSelectorHiddenFlags(weapon, config);
-      if (!shouldHideInSelector(weapon, config)) return "";
-      const t = typeof state.t === "function" ? state.t : (value) => value;
-      const reasons = [];
-      if (flags.hiddenByUnowned) reasons.push(t("未拥有"));
-      if (flags.hiddenByEssenceOwned) reasons.push(t("基质已有"));
-      if (flags.hiddenByFourStar) reasons.push(t("四星"));
-      if (!reasons.length) return "";
-      return t("已隐藏：{reasons}", { reasons: reasons.join(" / ") });
+      if (!flags.hidden) return "";
+      const reasonKeys = buildHiddenReasonKeys(flags);
+      if (!reasonKeys.length) return "";
+      const reasons = formatHiddenReasons(reasonKeys);
+      if (shouldHideInSelector(weapon, config)) {
+        return translate("隐藏（{reasons}）", { reasons });
+      }
+      if (!config.attributeFilterAffectsHiddenWeapons && hasAttributeFilterSelection()) {
+        return translate("命中隐藏规则（{reasons}）", { reasons });
+      }
+      return "";
     };
 
     const matchesSearchQuery = (weapon, query, searchIndex) => {
@@ -194,37 +224,47 @@
       const affectsHidden = Boolean(config.attributeFilterAffectsHiddenWeapons);
       let fullCount = 0;
       let effectiveCount = 0;
+      const hiddenReasonSet = new Set();
       for (let i = 0; i < list.length; i += 1) {
         const weapon = list[i];
         if (!matchesSearchQuery(weapon, query, searchIndex)) continue;
         if (!matchesCrossGroupFilters(weapon, group)) continue;
         if (weapon[group] !== value) continue;
         fullCount += 1;
-        if (!getSelectorHiddenFlags(weapon, config).hidden) {
+        const flags = getSelectorHiddenFlags(weapon, config);
+        if (!flags.hidden) {
           effectiveCount += 1;
+        } else if (affectsHidden) {
+          buildHiddenReasonKeys(flags).forEach((key) => hiddenReasonSet.add(key));
         }
       }
       const isEmpty = fullCount === 0;
       const count = affectsHidden ? effectiveCount : fullCount;
-      const affectsNotOwned = Boolean(config.hideUnownedWeapons && config.hideUnownedWeaponsInSelector);
-      const affectsEssenceOwned = Boolean(
-        config.hideEssenceOwnedWeapons && config.hideEssenceOwnedWeaponsInSelector
-      );
-      const affectsFourStar = Boolean(config.hideFourStarWeapons && config.hideFourStarWeaponsInSelector);
-      const isOnlyFourStarHidden =
-        affectsHidden &&
-        !isEmpty &&
-        effectiveCount === 0 &&
-        affectsFourStar &&
-        !affectsNotOwned &&
-        !affectsEssenceOwned;
+      const hiddenReasonKeys =
+        affectsHidden && !isEmpty && effectiveCount === 0
+          ? ["unowned", "essenceOwned", "fourStar"].filter((key) => hiddenReasonSet.has(key))
+          : [];
+      const hiddenReasons = formatHiddenReasons(hiddenReasonKeys);
+      const isHiddenOnly = affectsHidden && !isEmpty && effectiveCount === 0;
+      const disabledHintLabel = isEmpty
+        ? translate("暂无")
+        : isHiddenOnly
+          ? translate("被隐藏")
+          : translate("暂无");
+      const disabledHintTitle = isEmpty
+        ? translate("当前筛选下暂无武器")
+        : hiddenReasons
+          ? translate("当前筛选下有武器被隐藏：{reasons}", { reasons: hiddenReasons })
+          : translate("当前筛选下有武器被隐藏");
       return {
         value,
         count,
         fullCount,
         effectiveCount,
         isEmpty,
-        isOnlyFourStarHidden,
+        hiddenReasons,
+        disabledHintLabel,
+        disabledHintTitle,
         isDisabled: count === 0,
       };
     };

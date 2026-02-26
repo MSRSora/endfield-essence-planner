@@ -219,6 +219,7 @@
             </div>
           </div>
           <div class="plan-config-panel-foot">
+            <span class="plan-config-close-hint">{{ t("可点击面板外区域关闭") }}</span>
             <button class="ghost-button plan-config-close" type="button" @click="$emit('toggle')">
               {{ t("关闭") }}
             </button>

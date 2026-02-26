@@ -365,7 +365,12 @@ window.I18N["en"] = {
     "开启后，属性筛选按武器列表实际显示结果计算（受“隐藏未拥有/隐藏基质已有/隐藏四星”及其应用到武器列表子开关影响）；关闭后按真实匹配数计算。": "When enabled, attribute filters are calculated from currently visible weapons (affected by “Hide unowned / Hide essence-owned / Hide 4★” and their list-apply sub-switches); when disabled, true match counts are used.",
     "属性筛选受“同时应用到武器列表”影响": "Attribute filters follow “also apply to weapon list”",
     "开启后，属性筛选按武器列表实际显示结果计算（受“同时应用到武器列表”开关影响）；关闭后按真实匹配数计算。": "When enabled, attribute filters are calculated from currently visible weapons (affected by “also apply to weapon list” switches); when disabled, true match counts are used.",
+    "可点击面板外区域关闭": "Click outside the panel to close",
     "已隐藏：{reasons}": "Hidden: {reasons}",
+    "隐藏（{reasons}）": "Hidden ({reasons})",
+    "命中隐藏规则（{reasons}）": "Matches hide rules ({reasons})",
+    "被隐藏": "Hidden",
+    "当前筛选下有武器被隐藏：{reasons}": "Weapons are hidden under current filters: {reasons}",
     "四星": "4★"
   },
   "terms": {

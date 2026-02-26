@@ -331,7 +331,7 @@
                   }"
                   :title="
                     option.isDisabled && !filterS1.includes(option.value)
-                      ? t(option.isOnlyFourStarHidden ? '仅四星（已隐藏）' : '当前筛选下暂无武器')
+                      ? option.disabledHintTitle
                       : ''
                   "
                   @click="
@@ -342,7 +342,7 @@
                 >
                   <span>{{ formatS1(option.value) }}</span>
                   <span v-if="option.isDisabled && !filterS1.includes(option.value)" class="chip-meta">
-                    {{ t(option.isOnlyFourStarHidden ? "仅四星（已隐藏）" : "暂无") }}
+                    {{ option.disabledHintLabel }}
                   </span>
                 </button>
               </div>
@@ -360,7 +360,7 @@
                   }"
                   :title="
                     option.isDisabled && !filterS2.includes(option.value)
-                      ? t(option.isOnlyFourStarHidden ? '仅四星（已隐藏）' : '当前筛选下暂无武器')
+                      ? option.disabledHintTitle
                       : ''
                   "
                   @click="
@@ -371,7 +371,7 @@
                 >
                   <span>{{ tTerm("s2", option.value) }}</span>
                   <span v-if="option.isDisabled && !filterS2.includes(option.value)" class="chip-meta">
-                    {{ t(option.isOnlyFourStarHidden ? "仅四星（已隐藏）" : "暂无") }}
+                    {{ option.disabledHintLabel }}
                   </span>
                 </button>
               </div>
@@ -389,7 +389,7 @@
                   }"
                   :title="
                     option.isDisabled && !filterS3.includes(option.value)
-                      ? t(option.isOnlyFourStarHidden ? '仅四星（已隐藏）' : '当前筛选下暂无武器')
+                      ? option.disabledHintTitle
                       : ''
                   "
                   @click="
@@ -400,23 +400,11 @@
                 >
                   <span>{{ tTerm("s3", option.value) }}</span>
                   <span v-if="option.isDisabled && !filterS3.includes(option.value)" class="chip-meta">
-                    {{ t(option.isOnlyFourStarHidden ? "仅四星（已隐藏）" : "暂无") }}
+                    {{ option.disabledHintLabel }}
                   </span>
                 </button>
               </div>
               <div class="filter-hint">{{ t("灰色属性代表当前筛选下暂无武器") }}</div>
-              <div v-if="hiddenInSelectorSummary && hiddenInSelectorSummary.total" class="filter-hint">
-                {{ t("当前有 {count} 把武器因隐藏开关未显示", { count: hiddenInSelectorSummary.total }) }}
-                <span v-if="hiddenInSelectorSummary.unowned > 0"
-                  >（{{ t("未拥有 {count}", { count: hiddenInSelectorSummary.unowned }) }}）</span
-                >
-                <span v-if="hiddenInSelectorSummary.essenceOwned > 0"
-                  >（{{ t("基质已有 {count}", { count: hiddenInSelectorSummary.essenceOwned }) }}）</span
-                >
-                <span v-if="hiddenInSelectorSummary.fourStar > 0"
-                  >（{{ t("四星 {count}", { count: hiddenInSelectorSummary.fourStar }) }}）</span
-                >
-              </div>
             </div>
           </div>
 
@@ -496,7 +484,7 @@
               </div>
               <div class="weapon-band"></div>
               <div v-if="getSelectorHiddenReason(weapon)" class="weapon-hidden-chip">
-                {{ getSelectorHiddenReason(weapon) }}
+                {{ t("被隐藏") }}
               </div>
               <div class="weapon-name">
                 <div class="weapon-title">{{ tTerm("weapon", weapon.name) }}</div>
@@ -666,7 +654,7 @@
               <div class="weapon-exclude-row" @click.stop>
                 <button
                   class="exclude-toggle small"
-                  :class="{ active: !isWeaponOwned(weapon.name), 'intent-alert': isWeaponOwned(weapon.name) }"
+                  :class="{ active: isWeaponOwned(weapon.name), 'intent-alert': !isWeaponOwned(weapon.name) }"
                   @click.stop="toggleWeaponOwned(weapon)"
                 >
                   {{ isWeaponOwned(weapon.name) ? t("标记武器未有") : t("标记武器拥有") }}
@@ -851,7 +839,7 @@
                   <div class="weapon-exclude-row" @click.stop>
                     <button
                       class="exclude-toggle small"
-                      :class="{ active: !isWeaponOwned(weapon.name), 'intent-alert': isWeaponOwned(weapon.name) }"
+                      :class="{ active: isWeaponOwned(weapon.name), 'intent-alert': !isWeaponOwned(weapon.name) }"
                       @click.stop="toggleWeaponOwned(weapon)"
                     >
                       {{ isWeaponOwned(weapon.name) ? t("标记武器未有") : t("标记武器拥有") }}
