@@ -3,6 +3,15 @@
 
   modules.initTutorial = function initTutorial(ctx, state) {
     const { ref, computed, watch, nextTick } = ctx;
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
 
     const tutorialWeapon = {
       name: "教学示例-武器",
@@ -517,7 +526,9 @@
             })
           );
         } catch (error) {
-          // ignore storage errors
+          reportStorageIssue("storage.write", state.tutorialStorageKey, error, {
+            scope: "tutorial.persist-state",
+          });
         }
       },
       { immediate: true }

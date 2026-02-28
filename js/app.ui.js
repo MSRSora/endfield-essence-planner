@@ -14,6 +14,15 @@
     const canShowAds = state.canShowAds;
     const updateLangMenuPlacement = state.updateLangMenuPlacement;
     const loadScriptOnce = state.loadScriptOnce;
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
 
     const root = typeof document !== "undefined" ? document.documentElement : null;
     const defaultBackgroundUrl = "https://img.canmoe.com/image?img=ua";
@@ -70,6 +79,9 @@
       try {
         return String(localStorage.getItem(key) || "");
       } catch (error) {
+        reportStorageIssue("storage.read", key, error, {
+          scope: "ui.read-storage-value",
+        });
         return "";
       }
     };
@@ -196,7 +208,6 @@
 
     const handleAdFailed = () => {
       canShowAds.value = false;
-      scheduleAdSlotVisibility();
     };
 
     const hasRenderedAdSlotContainer = () => {
@@ -264,8 +275,6 @@
           window.__slotProviderScriptError = false;
           adScriptRetryCount = 0;
           clearAdScriptRetry();
-          scheduleAdSlotVisibility();
-          primeAdSlotVisibility();
           return true;
         })
         .catch(() => {
@@ -278,155 +287,6 @@
           adScriptLoadingPromise = null;
         });
       return adScriptLoadingPromise;
-    };
-
-    const adSlotSelector = ".slot-hero-shell, .slot-inline-top";
-    const adSlotContainerSelector = ".slot-provider-net, .adwork-net";
-    let adSlotVisibilityRaf = null;
-    let adSlotVisibilityTimers = [];
-
-    const clearAdSlotTimers = () => {
-      if (!adSlotVisibilityTimers.length) return;
-      adSlotVisibilityTimers.forEach((timer) => clearTimeout(timer));
-      adSlotVisibilityTimers = [];
-    };
-
-    const hasRenderableAdContent = (node) => {
-      if (!(node instanceof HTMLElement)) return false;
-      const style = window.getComputedStyle(node);
-      if (style.display === "none" || style.visibility === "hidden") return false;
-      if (Number(style.opacity || 1) === 0) return false;
-      if (node instanceof HTMLImageElement) {
-        if (node.complete && node.naturalWidth > 0 && node.naturalHeight > 0) {
-          return true;
-        }
-      }
-      if (node instanceof HTMLVideoElement) {
-        if (node.videoWidth > 0 && node.videoHeight > 0) {
-          return true;
-        }
-      }
-      const rect = node.getBoundingClientRect();
-      return rect.width >= 120 && rect.height >= 20;
-    };
-
-    const isLikelyPlaceholderNode = (node) => {
-      if (!(node instanceof HTMLElement)) return false;
-      const text = (node.textContent || "").trim();
-      if (text && text.length > 0) {
-        const normalized = text.toLowerCase();
-        if (
-          normalized.includes("广告") ||
-          normalized.includes("placeholder") ||
-          normalized.includes("审核")
-        ) {
-          return true;
-        }
-      }
-      const className = (node.className || "").toString().toLowerCase();
-      if (
-          className.includes("placeholder")
-      ) {
-        return true;
-      }
-      return false;
-    };
-
-    const hasMeaningfulAdChildren = (node) => {
-      if (!(node instanceof HTMLElement)) return false;
-      const children = Array.from(node.children || []);
-      if (!children.length) return false;
-      return children.some((child) => {
-        if (!(child instanceof HTMLElement)) return false;
-        if (child.matches("script, style, link, meta")) return false;
-        if (isLikelyPlaceholderNode(child)) return false;
-        if (child.matches("iframe, img, ins, object, embed, video, canvas, svg, a, button")) {
-          return true;
-        }
-        const text = (child.textContent || "").trim();
-        if (text.length > 0) return true;
-        return hasRenderableAdContent(child);
-      });
-    };
-
-    const updateAdSlotVisibility = () => {
-      if (typeof window === "undefined" || typeof document === "undefined") return;
-      const slots = document.querySelectorAll(adSlotSelector);
-      slots.forEach((slot) => {
-        if (adPreviewMode.value && !adDismissedSession.value) {
-          slot.classList.remove("is-slot-hidden");
-          slot.classList.remove("is-slot-compact");
-          return;
-        }
-        const hadCompactClass = slot.classList.contains("is-slot-compact");
-        if (hadCompactClass) {
-          // Temporarily release compact height constraints before measuring ad renderability.
-          slot.classList.remove("is-slot-compact");
-        }
-        const container = slot.querySelector(adSlotContainerSelector);
-        const hasContainer = container instanceof HTMLElement;
-        const richNodes =
-          hasContainer
-            ? Array.from(
-                container.querySelectorAll("iframe, img, ins, object, embed, video, canvas, svg")
-              )
-            : [];
-        const hasRichRenderable = richNodes.some((node) => {
-          if (!(node instanceof HTMLElement)) return false;
-          if (node.tagName === "IFRAME") {
-            const src = String(node.getAttribute("src") || "").trim().toLowerCase();
-            if (!src || src === "about:blank") return false;
-          }
-          return hasRenderableAdContent(node);
-        });
-        const hasMeaningfulChildren =
-          hasContainer && hasMeaningfulAdChildren(container);
-        const hasContainerRenderable =
-          hasContainer && hasRenderableAdContent(container);
-        const placeholderChildren =
-          hasContainer &&
-          Array.from(container.children || []).some(
-            (child) => child instanceof HTMLElement && isLikelyPlaceholderNode(child)
-          );
-        const placeholderLike =
-          hasContainer &&
-          !hasRichRenderable &&
-          (isLikelyPlaceholderNode(container) || placeholderChildren);
-        const hasRenderable = hasRichRenderable || (hasMeaningfulChildren && hasContainerRenderable);
-        const shouldHardHide = !canShowAds.value || !hasContainer;
-        const shouldSoftHide = !shouldHardHide && (!hasRenderable || placeholderLike);
-        slot.classList.toggle("is-slot-hidden", shouldHardHide);
-        slot.classList.toggle("is-slot-compact", shouldSoftHide);
-      });
-    };
-
-    const scheduleAdSlotVisibility = () => {
-      if (typeof window === "undefined") return;
-      if (adSlotVisibilityRaf) {
-        cancelAnimationFrame(adSlotVisibilityRaf);
-      }
-      adSlotVisibilityRaf = requestAnimationFrame(() => {
-        adSlotVisibilityRaf = null;
-        updateAdSlotVisibility();
-      });
-    };
-
-    const primeAdSlotVisibility = () => {
-      clearAdSlotTimers();
-      [80, 360, 900, 1800, 3200, 5200, 7600, 11000].forEach((delay) => {
-        adSlotVisibilityTimers.push(
-          setTimeout(() => {
-            scheduleAdSlotVisibility();
-          }, delay)
-        );
-      });
-    };
-
-    const handleAdPotentialMutation = () => {
-      scheduleAdSlotVisibility();
-      if (typeof window !== "undefined") {
-        setTimeout(() => scheduleAdSlotVisibility(), 120);
-      }
     };
 
     const resolveTheme = (mode) => {
@@ -576,7 +436,9 @@
       try {
         localStorage.setItem(state.planConfigHintStorageKey, state.planConfigHintVersion);
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.planConfigHintStorageKey, error, {
+          scope: "ui.plan-config-hint-write",
+        });
       }
     };
 
@@ -591,7 +453,6 @@
     const dismissAdsForSession = () => {
       adDismissedSession.value = true;
       canShowAds.value = false;
-      scheduleAdSlotVisibility();
     };
 
     const handleDocClick = (event) => {
@@ -657,15 +518,12 @@
         window.addEventListener("scroll", handleBackToTopScroll, { passive: true });
         evaluateAdVisibility();
         window.addEventListener("slotfeed:failed", handleAdFailed);
-        window.addEventListener("resize", scheduleAdSlotVisibility);
         if (canShowAds.value) {
           runAfterLayout(ensureAdScriptLoaded);
         }
       }
-      document.addEventListener("click", handleAdPotentialMutation, true);
       document.addEventListener("click", handleDocClick);
       document.addEventListener("keydown", handleDocKeydown);
-      primeAdSlotVisibility();
       const finalizePreload = () => {
         warmupBackgroundBeforeFinish()
           .catch(() => false)
@@ -685,7 +543,6 @@
       if (canShowAds.value) {
         runAfterLayout(ensureAdScriptLoaded);
       }
-      primeAdSlotVisibility();
     });
 
     watch(
@@ -696,8 +553,6 @@
           if (canShowAds.value) {
             ensureAdScriptLoaded();
           }
-          primeAdSlotVisibility();
-          scheduleAdSlotVisibility();
         };
         runAfterLayout(refreshAdSlotAfterViewSwitch);
       }
@@ -722,15 +577,8 @@
       if (typeof window !== "undefined") {
         window.removeEventListener("scroll", handleBackToTopScroll);
         window.removeEventListener("slotfeed:failed", handleAdFailed);
-        window.removeEventListener("resize", scheduleAdSlotVisibility);
       }
-      if (adSlotVisibilityRaf) {
-        cancelAnimationFrame(adSlotVisibilityRaf);
-        adSlotVisibilityRaf = null;
-      }
-      clearAdSlotTimers();
       clearAdScriptRetry();
-      document.removeEventListener("click", handleAdPotentialMutation, true);
       clearBackToTopTimer();
       document.removeEventListener("click", handleDocClick);
       document.removeEventListener("keydown", handleDocKeydown);

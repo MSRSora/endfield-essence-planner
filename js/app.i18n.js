@@ -13,11 +13,27 @@
       en: "./data/i18n.en.js",
       ja: "./data/i18n.ja.js",
     };
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
     const isLocaleLoaded = (localeKey) => Boolean(i18n && i18n[localeKey]);
     const normalizeLocale = (value) => (allLocales.includes(value) ? value : fallbackLocale);
     const detectLocale = () => {
       if (typeof window === "undefined") return fallbackLocale;
-      const stored = localStorage.getItem(state.langStorageKey);
+      let stored = "";
+      try {
+        stored = localStorage.getItem(state.langStorageKey);
+      } catch (error) {
+        reportStorageIssue("storage.read", state.langStorageKey, error, {
+          scope: "i18n.detect-locale",
+        });
+      }
       if (stored && allLocales.includes(stored)) return normalizeLocale(stored);
       const raw = (navigator.language || "").toLowerCase();
       if (raw.startsWith("zh")) {
@@ -232,7 +248,9 @@
         try {
           localStorage.setItem(state.langStorageKey, normalized);
         } catch (error) {
-          // ignore storage errors
+          reportStorageIssue("storage.write", state.langStorageKey, error, {
+            scope: "i18n.persist-locale",
+          });
         }
         localeRenderVersion.value += 1;
         updateMeta();

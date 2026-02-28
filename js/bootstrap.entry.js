@@ -355,6 +355,57 @@
     locale: bootLocale,
     t: bt,
   };
+  var runBootStorageProbe = function () {
+    var probeKey = "planner-storage-bootstrap-probe";
+    var result = {
+      ok: true,
+      key: probeKey,
+      errorName: "",
+      errorMessage: "",
+      occurredAt: new Date().toISOString(),
+    };
+    try {
+      var marker = "__ok__" + Date.now();
+      localStorage.setItem(probeKey, marker);
+      var readBack = localStorage.getItem(probeKey);
+      if (readBack !== marker) {
+        throw new Error("localStorage probe mismatch");
+      }
+      localStorage.removeItem(probeKey);
+    } catch (error) {
+      result.ok = false;
+      result.errorName = String((error && error.name) || "Error");
+      result.errorMessage = String((error && error.message) || "bootstrap storage probe failed");
+      try {
+        localStorage.removeItem(probeKey);
+      } catch (cleanupError) {
+        // ignore probe cleanup errors
+      }
+    }
+    window.__bootStorageProbe = result;
+  };
+  runBootStorageProbe();
+  var resolveBootCacheBustToken = function () {
+    try {
+      var url = new URL(window.location.href);
+      return String(url.searchParams.get("__clear_ts") || "").trim();
+    } catch (error) {
+      return "";
+    }
+  };
+  var bootCacheBustToken = resolveBootCacheBustToken();
+  var applyBootCacheBust = function (src) {
+    var input = String(src || "");
+    if (!input || !bootCacheBustToken) return input;
+    try {
+      var url = new URL(input, window.location.href);
+      url.searchParams.set("__cb", bootCacheBustToken);
+      return url.toString();
+    } catch (error) {
+      return input;
+    }
+  };
+  window.__bootCacheBustToken = bootCacheBustToken;
   var normalizeResourceKey = function (src) {
     try {
       return new URL(src, window.location.href).href;
@@ -1011,23 +1062,27 @@
 
     var scriptLoadRegistry = new Map();
     var loadScript = function (src) {
+      var requestSrc = applyBootCacheBust(src);
       var key = ensureResource(src, "script");
       if (scriptLoadRegistry.has(key)) {
         return scriptLoadRegistry.get(key);
       }
       var task = new Promise(function (resolve, reject) {
-        var existingLoaded = Array.from(document.scripts || []).some(function (script) {
-          var s = script.getAttribute("src") || script.src || "";
-          var same = normalizeResourceKey(s) === key;
-          return same && script.dataset && script.dataset.loaded === "true";
-        });
+        var existingLoaded = false;
+        if (!bootCacheBustToken) {
+          existingLoaded = Array.from(document.scripts || []).some(function (script) {
+            var s = script.getAttribute("src") || script.src || "";
+            var same = normalizeResourceKey(s) === key;
+            return same && script.dataset && script.dataset.loaded === "true";
+          });
+        }
         if (existingLoaded) {
           setResourceStatus(key, "loaded");
           resolve();
           return;
         }
         var script = document.createElement("script");
-        script.src = src;
+        script.src = requestSrc;
         setResourceStatus(key, "loading");
         script.onload = function () {
           script.dataset.loaded = "true";
@@ -1037,7 +1092,7 @@
         script.onerror = function () {
           setResourceStatus(key, "failed");
           scriptLoadRegistry.delete(key);
-          probeResourceStatus(src).then(function (probe) {
+          probeResourceStatus(requestSrc).then(function (probe) {
             reject(createLoadError("script", src, "error", probe));
           });
         };
@@ -1094,6 +1149,7 @@
       }
     };
     var loadStyle = function (href) {
+      var requestHref = applyBootCacheBust(href);
       var key = ensureResource(href, "style");
       if (styleLoadRegistry.has(key)) {
         return styleLoadRegistry.get(key);
@@ -1104,11 +1160,14 @@
         var lastProbe = null;
         var errorSettleTimer = null;
         var nextProbeAt = Date.now();
-        var link = document.querySelector('link[rel="stylesheet"][href="' + href + '"]');
+        var link =
+          bootCacheBustToken
+            ? null
+            : document.querySelector('link[rel="stylesheet"][href="' + href + '"]');
         if (!link) {
           link = document.createElement("link");
           link.rel = "stylesheet";
-          link.href = href;
+          link.href = requestHref;
           document.head.appendChild(link);
         }
         setResourceStatus(key, "loading");
@@ -1142,7 +1201,7 @@
         var runProbe = function (source) {
           if (settled || probeInFlight) return;
           probeInFlight = true;
-          probeResourceStatus(href)
+          probeResourceStatus(requestHref)
             .then(function (probe) {
               if (settled) return;
               lastProbe = probe || null;
@@ -1182,7 +1241,7 @@
               onLoad();
               return;
             }
-            probeResourceStatus(href).then(function (probe) {
+            probeResourceStatus(requestHref).then(function (probe) {
               if (settled) return;
               if (isStylesheetReady(key, link)) {
                 onLoad();

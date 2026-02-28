@@ -148,7 +148,11 @@
           }
         }
       } catch (error) {
-        // ignore storage errors
+        if (typeof state.reportStorageIssue === "function") {
+          state.reportStorageIssue("storage.read", storageKey, error, {
+            scope: "background.read-file",
+          });
+        }
       }
     };
 
@@ -160,7 +164,11 @@
           state.customBackgroundApi.value = raw;
         }
       } catch (error) {
-        // ignore storage errors
+        if (typeof state.reportStorageIssue === "function") {
+          state.reportStorageIssue("storage.read", apiStorageKey, error, {
+            scope: "background.read-api",
+          });
+        }
       }
     };
 
@@ -169,7 +177,11 @@
         try {
           localStorage.removeItem(storageKey);
         } catch (error) {
-          // ignore storage errors
+          if (typeof state.reportStorageIssue === "function") {
+            state.reportStorageIssue("storage.write", storageKey, error, {
+              scope: "background.remove-file",
+            });
+          }
         }
         return;
       }
@@ -186,6 +198,11 @@
         state.customBackgroundError.value =
           (state.t && state.t("背景图片过大，无法保存到浏览器。")) ||
           "背景图片过大，无法保存到浏览器。";
+        if (typeof state.reportStorageIssue === "function") {
+          state.reportStorageIssue("storage.write", storageKey, error, {
+            scope: "background.persist-file",
+          });
+        }
       }
     };
 
@@ -196,14 +213,22 @@
         try {
           localStorage.removeItem(apiStorageKey);
         } catch (error) {
-          // ignore storage errors
+          if (typeof state.reportStorageIssue === "function") {
+            state.reportStorageIssue("storage.write", apiStorageKey, error, {
+              scope: "background.remove-api",
+            });
+          }
         }
         return;
       }
       try {
         localStorage.setItem(apiStorageKey, value);
       } catch (error) {
-        // ignore storage errors
+        if (typeof state.reportStorageIssue === "function") {
+          state.reportStorageIssue("storage.write", apiStorageKey, error, {
+            scope: "background.persist-api",
+          });
+        }
       }
     };
 
@@ -216,7 +241,11 @@
         localStorage.removeItem(storageKey);
         localStorage.removeItem(apiStorageKey);
       } catch (error) {
-        // ignore storage errors
+        if (typeof state.reportStorageIssue === "function") {
+          state.reportStorageIssue("storage.write", `${storageKey}|${apiStorageKey}`, error, {
+            scope: "background.clear-custom",
+          });
+        }
       }
       applyBackground();
     };

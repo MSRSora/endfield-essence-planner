@@ -921,14 +921,3 @@ html[data-bg-display="off"][data-theme="light"] body::after {
   color: #2b4663;
 }
 
-[data-theme="dark"] .slot-hero-shell.is-slot-compact,
-[data-theme="dark"] .slot-inline-top.is-slot-compact {
-  border-color: rgba(185, 203, 223, 0.2);
-  background: rgba(14, 20, 30, 0.34);
-}
-
-[data-theme="light"] .slot-hero-shell.is-slot-compact,
-[data-theme="light"] .slot-inline-top.is-slot-compact {
-  border-color: rgba(120, 150, 185, 0.2);
-  background: rgba(247, 251, 255, 0.34);
-}

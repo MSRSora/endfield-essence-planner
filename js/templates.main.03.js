@@ -1029,6 +1029,143 @@
         </div>
       </transition>
 
+      <transition name="fade-scale">
+        <div v-if="showStorageErrorModal" class="about-overlay storage-error-overlay">
+          <div class="about-card storage-error-card">
+            <h3>{{ t("本地存储异常") }}</h3>
+            <p class="storage-error-warning">
+              {{ t("检测到浏览器本地数据读写异常，继续使用可能导致数据丢失。") }}
+            </p>
+            <p class="storage-error-warning">
+              {{
+                t("失败操作：{operation}", {
+                  operation: (storageErrorCurrent && storageErrorCurrent.operation) || t("未知")
+                })
+              }}
+            </p>
+            <p class="storage-error-warning">
+              {{
+                t("失败键：{key}", {
+                  key: (storageErrorCurrent && storageErrorCurrent.key) || t("未知")
+                })
+              }}
+            </p>
+
+            <div class="storage-error-meta" v-if="storageErrorCurrent">
+              <div class="storage-error-meta-line">
+                <span class="storage-error-label">{{ t("错误：") }}</span>
+                <span class="storage-error-value">
+                  {{ storageErrorCurrent.errorName }}: {{ storageErrorCurrent.errorMessage }}
+                </span>
+              </div>
+              <div class="storage-error-meta-line">
+                <span class="storage-error-label">{{ t("时间：") }}</span>
+                <span class="storage-error-value">{{ storageErrorCurrent.occurredAt }}</span>
+              </div>
+            </div>
+
+            <div class="storage-error-preview">
+              <div class="storage-error-preview-title">{{ t("诊断预览（截断）") }}</div>
+              <pre class="storage-error-preview-content">{{ storageErrorPreviewText || t("暂无预览数据") }}</pre>
+            </div>
+
+            <div class="storage-error-log">
+              <div class="storage-error-log-title">
+                {{ t("最近异常记录") }}（{{ storageErrorLogs.length }}）
+              </div>
+              <ul class="storage-error-log-list">
+                <li v-for="item in storageErrorLogs" :key="item.id" class="storage-error-log-item">
+                  <span class="storage-error-log-time">{{ item.occurredAt }}</span>
+                  <span class="storage-error-log-op">{{ item.operation }}</span>
+                  <span class="storage-error-log-key">{{ item.key }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="about-actions storage-error-actions">
+              <button class="about-button storage-export-button" @click="exportStorageDiagnosticBundle">
+                {{ t("导出数据与诊断") }}
+              </button>
+              <button class="about-button migration-action migration-action-warn" @click="requestStorageDataClear">
+                {{ t("清理数据并刷新") }}
+              </button>
+              <a class="storage-feedback-button" :href="storageFeedbackUrl" target="_blank" rel="noreferrer">
+                {{ t("反馈问题") }}
+              </a>
+              <button class="ghost-button" @click="requestIgnoreStorageErrors">
+                {{ t("无视错误,继续使用") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade-scale">
+        <div v-if="showStorageClearConfirmModal" class="about-overlay storage-error-confirm-overlay">
+          <div class="about-card storage-confirm-card">
+            <h3>{{ t("确认清理数据并刷新") }}</h3>
+            <p class="storage-clear-confirm-warning">
+              {{
+                t(
+                  "将仅清理检测到异常的本地数据键，并尝试绕过缓存刷新页面，不会清理全部站点数据。此操作仍不可恢复。"
+                )
+              }}
+            </p>
+            <div class="storage-clear-targets" v-if="storageErrorClearTargetKeys.length">
+              <div class="storage-clear-target-title">
+                {{ t("将清理以下键：") }}
+              </div>
+              <ul class="storage-clear-target-list">
+                <li v-for="key in storageErrorClearTargetKeys" :key="key" class="storage-clear-target-item">
+                  {{ key }}
+                </li>
+              </ul>
+            </div>
+            <p v-else class="storage-clear-confirm-warning">
+              {{ t("未识别到明确异常键，本次仅执行刷新。") }}
+            </p>
+            <div class="about-actions storage-error-actions storage-clear-actions">
+              <button class="ghost-button" @click="cancelStorageDataClear">
+                {{ t("取消") }}
+              </button>
+              <button
+                class="about-button migration-action migration-action-danger"
+                :disabled="storageErrorClearCountdown > 0"
+                @click="confirmStorageDataClearAndReload"
+              >
+                {{ t("确认清理并刷新") }}
+                <span v-if="storageErrorClearCountdown > 0">
+                  {{ t("（{count}s）", { count: storageErrorClearCountdown }) }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade-scale">
+        <div v-if="showStorageIgnoreConfirmModal" class="about-overlay storage-error-confirm-overlay">
+          <div class="about-card storage-confirm-card">
+            <h3>{{ t("确认无视错误") }}</h3>
+            <p class="storage-clear-confirm-warning">
+              {{
+                t(
+                  "确认后本次会话将不再弹出该异常提醒，继续使用可能导致数据丢失。"
+                )
+              }}
+            </p>
+            <div class="about-actions storage-error-actions storage-clear-actions">
+              <button class="ghost-button" @click="cancelIgnoreStorageErrors">
+                {{ t("取消") }}
+              </button>
+              <button class="about-button migration-action migration-action-warn" @click="confirmIgnoreStorageErrors">
+                {{ t("确认无视错误,继续使用") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <div v-if="showDomainWarning" class="domain-overlay">
         <div class="domain-card">
           <h3>{{ t("非官方域名提示") }}</h3>

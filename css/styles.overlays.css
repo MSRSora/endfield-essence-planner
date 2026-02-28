@@ -839,6 +839,318 @@
         padding-right: 4px;
       }
 
+      .about-overlay.storage-error-overlay {
+        z-index: 44;
+      }
+
+      .about-overlay.storage-error-confirm-overlay {
+        z-index: 45;
+      }
+
+      .storage-error-card {
+        width: min(760px, 94vw);
+        max-height: min(84vh, 760px);
+        overflow: auto;
+        border-color: rgba(243, 108, 108, 0.42);
+        background: rgba(26, 14, 18, 0.84);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+      }
+
+      .storage-error-warning {
+        color: #ffd7d7;
+        line-height: 1.7;
+      }
+
+      .storage-error-meta {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.04);
+        display: grid;
+        gap: 6px;
+      }
+
+      .storage-error-meta-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .storage-error-label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .storage-error-value {
+        color: #eaf4ff;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .storage-error-preview {
+        margin-top: 12px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .storage-error-preview-title {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #ffe5e5;
+      }
+
+      .storage-error-preview-content {
+        margin: 0;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.04);
+        color: #e3edf9;
+        font-size: 11px;
+        line-height: 1.45;
+        max-height: 180px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .storage-error-log {
+        margin-top: 10px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .storage-error-log-title {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .storage-error-log-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 6px;
+      }
+
+      .storage-error-log-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .storage-error-log-time {
+        color: #d1deef;
+        font-size: 11px;
+      }
+
+      .storage-error-log-op {
+        color: #ffe5e5;
+        font-size: 11px;
+      }
+
+      .storage-error-log-key {
+        color: var(--muted);
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+
+      .storage-clear-confirm {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(243, 108, 108, 0.36);
+        background: rgba(243, 108, 108, 0.08);
+      }
+
+      .storage-clear-confirm-warning {
+        color: #ffe1e1;
+      }
+
+      .storage-error-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .storage-clear-actions {
+        margin-top: 8px;
+      }
+
+      .storage-confirm-card {
+        width: min(620px, 92vw);
+        border-color: rgba(243, 108, 108, 0.42);
+        background: rgba(26, 14, 18, 0.92);
+      }
+
+      .storage-clear-targets {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .storage-clear-target-title {
+        font-size: 12px;
+        color: #ffd7d7;
+      }
+
+      .storage-clear-target-list {
+        margin: 8px 0 0;
+        padding: 0 0 0 18px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .storage-clear-target-item {
+        color: #e3edf9;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .storage-export-button {
+        border-color: rgba(255, 188, 106, 0.55);
+        background: rgba(255, 188, 106, 0.18);
+        color: #ffe8bf;
+      }
+
+      .storage-export-button:hover {
+        border-color: rgba(255, 201, 132, 0.78);
+        background: rgba(255, 188, 106, 0.28);
+      }
+
+      .storage-feedback-button {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        border: 1px solid rgba(77, 214, 201, 0.45);
+        border-radius: 999px;
+        padding: 6px 14px;
+        background: rgba(12, 18, 28, 0.85);
+        color: #c9fff7;
+        line-height: 1;
+        font-size: 12px;
+      }
+
+      .storage-feedback-button:hover {
+        border-color: rgba(98, 228, 216, 0.72);
+        color: #d9fffb;
+      }
+
+      [data-theme="light"] .about-card.storage-error-card {
+        border-color: rgba(243, 108, 108, 0.42);
+        background: rgba(26, 14, 18, 0.84);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+        color: #e6e9ef;
+      }
+
+      [data-theme="light"] .about-card.storage-confirm-card {
+        border-color: rgba(243, 108, 108, 0.42);
+        background: rgba(26, 14, 18, 0.92);
+        color: #e6e9ef;
+      }
+
+      [data-theme="light"] .about-card.storage-error-card h3,
+      [data-theme="light"] .about-card.storage-confirm-card h3 {
+        color: #ff9e9e;
+      }
+
+      [data-theme="light"] .about-card.storage-error-card p,
+      [data-theme="light"] .about-card.storage-confirm-card p {
+        color: #ffd7d7;
+      }
+
+      [data-theme="light"] .storage-error-warning {
+        color: #ffd7d7;
+      }
+
+      [data-theme="light"] .storage-error-meta,
+      [data-theme="light"] .storage-error-preview-content,
+      [data-theme="light"] .storage-error-log-item {
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      [data-theme="light"] .storage-error-preview-content,
+      [data-theme="light"] .storage-clear-target-item {
+        color: #e3edf9;
+      }
+
+      [data-theme="light"] .storage-error-value,
+      [data-theme="light"] .storage-error-log-time {
+        color: #eaf4ff;
+      }
+
+      [data-theme="light"] .storage-error-log-op {
+        color: #ffe5e5;
+      }
+
+      [data-theme="light"] .storage-error-preview-title {
+        color: #ffe5e5;
+      }
+
+      [data-theme="light"] .storage-clear-confirm {
+        border-color: rgba(243, 108, 108, 0.36);
+        background: rgba(243, 108, 108, 0.08);
+      }
+
+      [data-theme="light"] .storage-clear-confirm-warning {
+        color: #ffe1e1;
+      }
+
+      [data-theme="light"] .storage-clear-targets {
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      [data-theme="light"] .storage-clear-target-title {
+        color: #ffe5e5;
+      }
+
+      [data-theme="light"] .about-button.storage-export-button {
+        border-color: rgba(255, 188, 106, 0.55);
+        background: rgba(255, 188, 106, 0.18);
+        color: #ffe8bf;
+      }
+
+      [data-theme="light"] .about-button.storage-export-button:hover {
+        border-color: rgba(255, 201, 132, 0.78);
+        background: rgba(255, 188, 106, 0.28);
+        color: #ffe8bf;
+      }
+
+      [data-theme="light"] .storage-error-actions .migration-action.migration-action-warn {
+        border-color: rgba(255, 188, 106, 0.55);
+        background: rgba(255, 188, 106, 0.18);
+        color: #ffe8bf;
+      }
+
+      [data-theme="light"] .storage-error-actions .migration-action.migration-action-warn:hover {
+        border-color: rgba(255, 201, 132, 0.78);
+        background: rgba(255, 188, 106, 0.28);
+        color: #ffe8bf;
+      }
+
+      [data-theme="light"] .storage-feedback-button {
+        border-color: rgba(77, 214, 201, 0.45);
+        background: rgba(12, 18, 28, 0.85);
+        color: #c9fff7;
+      }
+
+      [data-theme="light"] .storage-feedback-button:hover {
+        border-color: rgba(98, 228, 216, 0.72);
+        color: #d9fffb;
+      }
+
       .tutorial-card {
         position: relative;
         width: min(380px, 92vw);

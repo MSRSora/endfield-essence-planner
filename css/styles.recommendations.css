@@ -78,24 +78,23 @@
         color: var(--text);
       }
 
-      .slot-hero-shell.is-slot-hidden .slot-close-button,
-      .slot-inline-top.is-slot-hidden .slot-close-button,
-      .slot-hero-shell.is-slot-compact .slot-close-button,
-      .slot-inline-top.is-slot-compact .slot-close-button {
+      .slot-hero-shell .slot-ad-tip,
+      .slot-inline-card.slot-inline-top .slot-ad-tip {
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1;
+        font-size: 11px;
+        line-height: 1.25;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        min-height: 20px;
+        padding: 0 8px;
         display: inline-flex;
-        visibility: visible;
-        opacity: 1;
-        pointer-events: auto;
-        z-index: 5;
-      }
-
-      .slot-hero-shell.is-slot-compact .slot-close-button,
-      .slot-inline-top.is-slot-compact .slot-close-button {
-        width: 20px;
-        height: 20px;
-        top: 3px;
-        right: 3px;
-        font-size: 12px;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
       }
 
       .slot-preview-banner {
@@ -112,189 +111,6 @@
         justify-content: center;
         text-align: center;
         padding: 12px 14px;
-      }
-
-      .slot-hero-shell.is-slot-hidden,
-      .slot-inline-top.is-slot-hidden {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        gap: 6px;
-        min-height: 34px;
-        padding: 4px 8px;
-        border-style: dashed;
-        border-color: rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.02);
-        box-shadow: none;
-        justify-content: center;
-      }
-
-      .slot-hero-shell.is-slot-compact,
-      .slot-inline-top.is-slot-compact {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        gap: 2px;
-        min-height: 44px !important;
-        padding: 3px 8px;
-        border-style: dashed;
-        border-color: rgba(255, 255, 255, 0.16);
-        background: rgba(255, 255, 255, 0.02);
-        box-shadow: none;
-        justify-content: center;
-      }
-
-      .slot-inline-card.slot-inline-top.is-slot-compact {
-        min-height: 44px !important;
-        height: auto !important;
-      }
-
-      .slot-hero-shell.is-slot-hidden .slot-provider-net,
-      .slot-inline-top.is-slot-hidden .slot-provider-net,
-      .slot-hero-shell.is-slot-hidden .adwork-net,
-      .slot-inline-top.is-slot-hidden .adwork-net {
-        min-height: 0 !important;
-        height: 0 !important;
-        max-height: 0 !important;
-        overflow: hidden;
-      }
-
-      .slot-hero-shell.is-slot-compact .slot-provider-net,
-      .slot-inline-top.is-slot-compact .slot-provider-net,
-      .slot-hero-shell.is-slot-compact .adwork-net,
-      .slot-inline-top.is-slot-compact .adwork-net {
-        width: 100%;
-        min-height: 0 !important;
-        height: 0 !important;
-        max-height: 0 !important;
-        overflow: hidden;
-      }
-
-      .slot-hero-shell.is-slot-hidden::before,
-      .slot-inline-top.is-slot-hidden::before {
-        content: "广告位";
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1.25;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: rgba(235, 243, 252, 0.92);
-        text-align: center;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: auto;
-        padding: 5px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(235, 243, 252, 0.38);
-        background: rgba(235, 243, 252, 0.12);
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        pointer-events: none;
-      }
-
-      .slot-hero-shell.is-slot-compact::before,
-      .slot-inline-top.is-slot-compact::before {
-        content: "广告位";
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1.25;
-        letter-spacing: 0.1em;
-        color: rgba(235, 243, 252, 0.92);
-        text-align: center;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: auto;
-        padding: 5px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(235, 243, 252, 0.38);
-        background: rgba(235, 243, 252, 0.12);
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-        pointer-events: none;
-      }
-
-      .slot-hero-shell.is-slot-hidden::after,
-      .slot-inline-top.is-slot-hidden::after,
-      .slot-hero-shell.is-slot-compact::after,
-      .slot-inline-top.is-slot-compact::after {
-        content: "广告未显示属正常，仅占位";
-        font-size: 11px;
-        line-height: 1.3;
-        letter-spacing: 0.02em;
-        color: rgba(214, 225, 238, 0.78);
-        text-align: center;
-        display: block;
-        margin-top: 2px;
-        pointer-events: none;
-      }
-
-      [data-theme="light"] .slot-hero-shell.is-slot-hidden::before,
-      [data-theme="light"] .slot-inline-top.is-slot-hidden::before,
-      [data-theme="light"] .slot-hero-shell.is-slot-compact::before,
-      [data-theme="light"] .slot-inline-top.is-slot-compact::before {
-        color: rgba(35, 55, 80, 0.96);
-        border-color: rgba(74, 111, 150, 0.45);
-        background: rgba(190, 214, 239, 0.28);
-        text-shadow: none;
-      }
-
-      [data-theme="light"] .slot-hero-shell.is-slot-hidden::after,
-      [data-theme="light"] .slot-inline-top.is-slot-hidden::after,
-      [data-theme="light"] .slot-hero-shell.is-slot-compact::after,
-      [data-theme="light"] .slot-inline-top.is-slot-compact::after {
-        color: rgba(50, 75, 104, 0.9);
-      }
-
-      .slot-hero-shell.is-slot-hidden::before,
-      .slot-inline-top.is-slot-hidden::before,
-      .slot-hero-shell.is-slot-compact::before,
-      .slot-inline-top.is-slot-compact::before {
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: none;
-        color: rgba(214, 225, 238, 0.76);
-        padding: 0;
-        border: none;
-        background: transparent;
-        text-shadow: none;
-      }
-
-      .slot-hero-shell.is-slot-compact::before,
-      .slot-inline-top.is-slot-compact::before {
-        font-size: 10px;
-        line-height: 1.1;
-      }
-
-      .slot-hero-shell.is-slot-hidden::after,
-      .slot-inline-top.is-slot-hidden::after,
-      .slot-hero-shell.is-slot-compact::after,
-      .slot-inline-top.is-slot-compact::after {
-        font-size: 10px;
-        color: rgba(200, 213, 228, 0.62);
-      }
-
-      .slot-hero-shell.is-slot-compact::after,
-      .slot-inline-top.is-slot-compact::after {
-        font-size: 9px;
-        line-height: 1.15;
-        margin-top: 0;
-      }
-
-      [data-theme="light"] .slot-hero-shell.is-slot-hidden::before,
-      [data-theme="light"] .slot-inline-top.is-slot-hidden::before,
-      [data-theme="light"] .slot-hero-shell.is-slot-compact::before,
-      [data-theme="light"] .slot-inline-top.is-slot-compact::before {
-        color: rgba(58, 82, 110, 0.78);
-        border: none;
-        background: transparent;
-      }
-
-      [data-theme="light"] .slot-hero-shell.is-slot-hidden::after,
-      [data-theme="light"] .slot-inline-top.is-slot-hidden::after,
-      [data-theme="light"] .slot-hero-shell.is-slot-compact::after,
-      [data-theme="light"] .slot-inline-top.is-slot-compact::after {
-        color: rgba(72, 98, 128, 0.66);
       }
 
       @media (max-width: 640px) {
@@ -315,24 +131,14 @@
           right: 5px;
         }
 
+        .slot-hero-shell .slot-ad-tip,
+        .slot-inline-card.slot-inline-top .slot-ad-tip {
+          top: 5px;
+          font-size: 10px;
+        }
+
         .slot-preview-banner {
           min-height: 76px;
-          font-size: 11px;
-        }
-
-        .slot-hero-shell.is-slot-compact,
-        .slot-inline-top.is-slot-compact,
-        .slot-inline-card.slot-inline-top.is-slot-compact {
-          min-height: 40px !important;
-          padding: 2px 6px;
-        }
-
-        .slot-hero-shell.is-slot-compact .slot-close-button,
-        .slot-inline-top.is-slot-compact .slot-close-button {
-          width: 18px;
-          height: 18px;
-          top: 2px;
-          right: 2px;
           font-size: 11px;
         }
 

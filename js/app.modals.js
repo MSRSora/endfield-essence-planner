@@ -5,11 +5,23 @@
     const { watch, onMounted, onBeforeUnmount } = ctx;
     const modalTransitionMs = 280;
     let modalUnlockTimer = null;
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
 
     const readNoticeSkipVersion = () => {
       try {
         return localStorage.getItem(state.noticeSkipKey) || "";
       } catch (error) {
+        reportStorageIssue("storage.read", state.noticeSkipKey, error, {
+          scope: "modals.notice-skip-read",
+        });
         return "";
       }
     };
@@ -22,7 +34,9 @@
           localStorage.removeItem(state.noticeSkipKey);
         }
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.noticeSkipKey, error, {
+          scope: "modals.notice-skip-write",
+        });
       }
     };
 
@@ -37,7 +51,9 @@
         }
         keys.forEach((key) => localStorage.removeItem(key));
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.clear", `${state.legacyNoticePrefix}*`, error, {
+          scope: "modals.notice-legacy-cleanup",
+        });
       }
     };
 
@@ -130,10 +146,13 @@
       Boolean(
         state.showNotice.value ||
           state.showChangelog.value ||
-          state.showAbout.value ||
+        state.showAbout.value ||
           state.showTutorialSkipConfirm.value ||
           state.showMigrationModal.value ||
-          state.showMigrationConfirmModal.value
+          state.showMigrationConfirmModal.value ||
+          state.showStorageErrorModal.value ||
+          state.showStorageClearConfirmModal.value ||
+          state.showStorageIgnoreConfirmModal.value
       );
 
     const clearStaleLockCheck = () => {
@@ -212,15 +231,31 @@
         state.showTutorialSkipConfirm,
         state.showMigrationModal,
         state.showMigrationConfirmModal,
+        state.showStorageErrorModal,
+        state.showStorageClearConfirmModal,
+        state.showStorageIgnoreConfirmModal,
       ],
-      ([noticeOpen, changelogOpen, aboutOpen, skipOpen, migrationOpen, migrationConfirmOpen]) => {
+      ([
+        noticeOpen,
+        changelogOpen,
+        aboutOpen,
+        skipOpen,
+        migrationOpen,
+        migrationConfirmOpen,
+        storageErrorOpen,
+        storageClearConfirmOpen,
+        storageIgnoreConfirmOpen,
+      ]) => {
         const hasOpenModal = Boolean(
           noticeOpen ||
             changelogOpen ||
             aboutOpen ||
             skipOpen ||
             migrationOpen ||
-            migrationConfirmOpen
+            migrationConfirmOpen ||
+            storageErrorOpen ||
+            storageClearConfirmOpen ||
+            storageIgnoreConfirmOpen
         );
         if (modalUnlockTimer) {
           clearTimeout(modalUnlockTimer);
@@ -247,6 +282,9 @@
         state.showDomainWarning,
         state.showMigrationModal,
         state.showMigrationConfirmModal,
+        state.showStorageErrorModal,
+        state.showStorageClearConfirmModal,
+        state.showStorageIgnoreConfirmModal,
       ],
       () => {
         if (typeof state.maybeAutoStartTutorial === "function") {

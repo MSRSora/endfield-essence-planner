@@ -25,4 +25,8 @@ window.SPONSORS = [
   { name: "victim", amount: "CNY 5.00", note: "很好用", date: "2026-02-25" },
   { name: "匿名", amount: "CNY 2.00", note: "", date: "2026-02-26" },
   { name: "匿名", amount: "CNY 3.25", note: "", date: "2026-02-26" },
+  { name: "白无常", amount: "CNY 10.00", note: "阿里嘎多", date: "2026-02-27" },
+  { name: "逸吱狐", amount: "CNY 5.00", note: "谢谢你滴网站", date: "2026-02-27" },
+  { name: "你喜欢穗,还是满穗?", amount: "CNY 1.00", note: "帮大忙了👍", date: "2026-02-27" },
+  { name: "从小怕挨针", amount: "CNY 5.00", note: "", date: "2026-02-27" },
 ];

@@ -2,7 +2,7 @@
   const modules = (window.AppModules = window.AppModules || {});
 
   modules.initStorage = function initStorage(ctx, state) {
-    const { computed, watch } = ctx;
+    const { computed, watch, onBeforeUnmount } = ctx;
 
     const sanitizeArray = (value) => (Array.isArray(value) ? value : []);
     const weaponNameSet = new Set(weapons.map((weapon) => weapon.name));
@@ -128,6 +128,43 @@
       return normalizeWeaponMarksMap(raw, weaponNameSet);
     };
 
+    const inspectWeaponMarksSchemaIssues = (raw) => {
+      const issues = [];
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        issues.push("顶层结构不是对象");
+        return issues;
+      }
+      const allowedKeys = new Set(["weaponOwned", "essenceOwned", "excluded", "note"]);
+      Object.keys(raw).forEach((name) => {
+        if (!name || !weaponNameSet.has(name)) return;
+        const entry = raw[name];
+        if (entry == null) return;
+        if (typeof entry === "string") return;
+        if (typeof entry !== "object" || Array.isArray(entry)) {
+          issues.push(`${name}: 数据结构不是对象或字符串`);
+          return;
+        }
+        Object.keys(entry).forEach((key) => {
+          if (!allowedKeys.has(key)) {
+            issues.push(`${name}: 存在未知字段 ${key}`);
+          }
+        });
+        if (Object.prototype.hasOwnProperty.call(entry, "weaponOwned") && typeof entry.weaponOwned !== "boolean") {
+          issues.push(`${name}: weaponOwned 不是布尔值`);
+        }
+        if (Object.prototype.hasOwnProperty.call(entry, "essenceOwned") && typeof entry.essenceOwned !== "boolean") {
+          issues.push(`${name}: essenceOwned 不是布尔值`);
+        }
+        if (Object.prototype.hasOwnProperty.call(entry, "excluded") && typeof entry.excluded !== "boolean") {
+          issues.push(`${name}: excluded 不是布尔值`);
+        }
+        if (Object.prototype.hasOwnProperty.call(entry, "note") && typeof entry.note !== "string") {
+          issues.push(`${name}: note 不是字符串`);
+        }
+      });
+      return issues;
+    };
+
     const normalizeLegacyMarks = (raw) => {
       return normalizeLegacyExcludedMarksMap(raw, weaponNameSet);
     };
@@ -135,6 +172,426 @@
     state.normalizeWeaponMarks = normalizeWeaponMarks;
     state.normalizeLegacyMarks = normalizeLegacyMarks;
     state.normalizeRecommendationConfig = normalizeRecommendationConfig;
+
+    const storageIssueLogLimit = 20;
+    const storageIssueDedupWindowMs = 4000;
+    const storageFeedbackUrl =
+      state.storageFeedbackUrl ||
+      "https://github.com/cmyyx/endfield-essence-planner/issues";
+    let lastStorageIssueSignature = "";
+    let lastStorageIssueAt = 0;
+    let storageClearCountdownTimer = null;
+
+    const nowIsoString = () => new Date().toISOString();
+
+    const getAppFingerprint = () => {
+      if (typeof document === "undefined") return "";
+      const meta = document.querySelector('meta[name="fingerprint"]');
+      const metaValue = meta && meta.getAttribute ? meta.getAttribute("content") : "";
+      if (metaValue) return String(metaValue);
+      const app = document.getElementById("app");
+      const attr = app && app.getAttribute ? app.getAttribute("data-fingerprint") : "";
+      return attr ? String(attr) : "";
+    };
+
+    const truncateText = (value, maxLength = 320) => {
+      const text = String(value == null ? "" : value);
+      if (text.length <= maxLength) return text;
+      return `${text.slice(0, maxLength)} ...(truncated, total ${text.length})`;
+    };
+
+    const collectManagedStorageKeys = () => {
+      const keys = [
+        state.marksStorageKey,
+        state.legacyMarksStorageKey,
+        state.legacyExcludedKey,
+        state.migrationStorageKey,
+        state.tutorialStorageKey,
+        state.uiStateStorageKey,
+        state.attrHintStorageKey,
+        state.noticeSkipKey,
+        state.perfModeStorageKey,
+        state.themeModeStorageKey,
+        state.langStorageKey,
+        state.backgroundStorageKey,
+        state.backgroundApiStorageKey,
+        state.backgroundDisplayStorageKey,
+        state.planConfigHintStorageKey,
+      ].filter(Boolean);
+      const unique = Array.from(new Set(keys));
+      try {
+        if (state.legacyNoticePrefix) {
+          for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(state.legacyNoticePrefix)) {
+              unique.push(key);
+            }
+          }
+        }
+      } catch (error) {
+        // ignore enumeration errors
+      }
+      return Array.from(new Set(unique));
+    };
+
+    const readStorageValueSafe = (key) => {
+      if (!key) {
+        return { key: String(key || ""), exists: false, length: 0, value: null, error: "" };
+      }
+      try {
+        const raw = localStorage.getItem(key);
+        return {
+          key,
+          exists: raw != null,
+          length: raw == null ? 0 : String(raw).length,
+          value: raw,
+          error: "",
+        };
+      } catch (error) {
+        return {
+          key,
+          exists: false,
+          length: 0,
+          value: null,
+          error: `${error && error.name ? error.name : "Error"}: ${
+            error && error.message ? error.message : "unknown"
+          }`,
+        };
+      }
+    };
+
+    const buildStoragePreviewText = (failedKey) => {
+      const ordered = [
+        failedKey,
+        state.marksStorageKey,
+        state.uiStateStorageKey,
+        state.backgroundStorageKey,
+        state.backgroundApiStorageKey,
+      ].filter(Boolean);
+      const keys = Array.from(new Set(ordered));
+      if (!keys.length) return "";
+      const lines = [];
+      keys.forEach((key) => {
+        const snapshot = readStorageValueSafe(key);
+        if (snapshot.error) {
+          lines.push(`[${snapshot.key}] read-failed: ${snapshot.error}`);
+          return;
+        }
+        if (!snapshot.exists) {
+          lines.push(`[${snapshot.key}] <empty>`);
+          return;
+        }
+        lines.push(`[${snapshot.key}] len=${snapshot.length}`);
+        lines.push(truncateText(snapshot.value, 360));
+      });
+      return lines.join("\n\n");
+    };
+
+    const buildStorageIssueEntry = (operation, key, error, meta) => {
+      const name = error && error.name ? error.name : "Error";
+      const message = error && error.message ? error.message : "unknown";
+      return {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        occurredAt: nowIsoString(),
+        operation: String(operation || ""),
+        key: String(key || ""),
+        errorName: String(name),
+        errorMessage: String(message),
+        scope: meta && meta.scope ? String(meta.scope) : "",
+        note: meta && meta.note ? String(meta.note) : "",
+      };
+    };
+
+    const reportStorageIssue = (operation, key, error, meta) => {
+      const entry = buildStorageIssueEntry(operation, key, error, meta);
+      const signature = `${entry.operation}|${entry.key}|${entry.errorName}|${entry.errorMessage}`;
+      const now = Date.now();
+      if (
+        signature === lastStorageIssueSignature &&
+        now - lastStorageIssueAt <= storageIssueDedupWindowMs
+      ) {
+        return;
+      }
+      lastStorageIssueSignature = signature;
+      lastStorageIssueAt = now;
+      state.storageErrorCurrent.value = entry;
+      state.storageErrorPreviewText.value = buildStoragePreviewText(entry.key);
+      const nextLogs = [entry].concat(Array.isArray(state.storageErrorLogs.value) ? state.storageErrorLogs.value : []);
+      state.storageErrorLogs.value = nextLogs.slice(0, storageIssueLogLimit);
+      if (!state.storageErrorIgnored.value) {
+        state.showStorageErrorModal.value = true;
+      }
+    };
+
+    const storageSystemKeySet = new Set([
+      "localStorage",
+      "sessionStorage",
+      "indexedDB",
+      "diagnostic-bundle",
+    ]);
+    const plannerStorageKeyPrefixes = [
+      "planner-",
+      "weapon-marks:",
+      "weapon-marks-migration:",
+      "excluded-notes:",
+      "announcement:skip",
+    ];
+
+    const splitStorageKeyParts = (rawKey) =>
+      String(rawKey || "")
+        .split("|")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const isLikelyPlannerStorageKey = (key) => {
+      if (!key) return false;
+      if (collectManagedStorageKeys().includes(key)) return true;
+      return plannerStorageKeyPrefixes.some((prefix) => key.startsWith(prefix));
+    };
+
+    const collectProblematicStorageKeys = () => {
+      const entries = [];
+      if (state.storageErrorCurrent && state.storageErrorCurrent.value) {
+        entries.push(state.storageErrorCurrent.value);
+      }
+      if (Array.isArray(state.storageErrorLogs.value) && state.storageErrorLogs.value.length) {
+        entries.push(...state.storageErrorLogs.value);
+      }
+      const keys = new Set();
+      entries.forEach((entry) => {
+        splitStorageKeyParts(entry && entry.key).forEach((part) => {
+          if (storageSystemKeySet.has(part)) return;
+          if (!isLikelyPlannerStorageKey(part)) return;
+          keys.add(part);
+        });
+      });
+      return Array.from(keys);
+    };
+
+    const refreshStorageClearTargets = () => {
+      const targets = collectProblematicStorageKeys();
+      state.storageErrorClearTargetKeys.value = targets;
+      return targets;
+    };
+
+    const stopStorageClearCountdown = () => {
+      if (!storageClearCountdownTimer) return;
+      clearInterval(storageClearCountdownTimer);
+      storageClearCountdownTimer = null;
+    };
+
+    const startStorageClearCountdown = () => {
+      stopStorageClearCountdown();
+      state.storageErrorClearCountdown.value = 3;
+      storageClearCountdownTimer = setInterval(() => {
+        if (state.storageErrorClearCountdown.value > 0) {
+          state.storageErrorClearCountdown.value -= 1;
+        }
+        if (state.storageErrorClearCountdown.value <= 0) {
+          state.storageErrorClearCountdown.value = 0;
+          stopStorageClearCountdown();
+        }
+      }, 1000);
+    };
+
+    const ignoreStorageErrors = () => {
+      stopStorageClearCountdown();
+      state.storageErrorIgnored.value = true;
+      state.showStorageClearConfirmModal.value = false;
+      state.showStorageIgnoreConfirmModal.value = false;
+      state.storageErrorClearTargetKeys.value = [];
+      state.storageErrorClearCountdown.value = 0;
+      state.showStorageErrorModal.value = false;
+    };
+
+    const requestIgnoreStorageErrors = () => {
+      state.showStorageIgnoreConfirmModal.value = true;
+    };
+
+    const cancelIgnoreStorageErrors = () => {
+      state.showStorageIgnoreConfirmModal.value = false;
+    };
+
+    const confirmIgnoreStorageErrors = () => {
+      ignoreStorageErrors();
+    };
+
+    const requestStorageDataClear = () => {
+      refreshStorageClearTargets();
+      state.showStorageClearConfirmModal.value = true;
+      startStorageClearCountdown();
+    };
+
+    const cancelStorageDataClear = () => {
+      stopStorageClearCountdown();
+      state.showStorageClearConfirmModal.value = false;
+      state.storageErrorClearTargetKeys.value = [];
+      state.storageErrorClearCountdown.value = 0;
+    };
+
+    const readManagedStorageRaw = () => {
+      const keys = collectManagedStorageKeys();
+      const data = {};
+      keys.forEach((key) => {
+        const snapshot = readStorageValueSafe(key);
+        data[key] = snapshot.error ? { error: snapshot.error } : snapshot.value;
+      });
+      return data;
+    };
+
+    const readManagedStorageSummary = () => {
+      const keys = collectManagedStorageKeys();
+      const summary = {};
+      keys.forEach((key) => {
+        const snapshot = readStorageValueSafe(key);
+        summary[key] = {
+          exists: snapshot.exists,
+          length: snapshot.length,
+          preview: snapshot.error ? "" : truncateText(snapshot.value, 220),
+          error: snapshot.error,
+        };
+      });
+      return summary;
+    };
+
+    const readStorageEstimate = async () => {
+      if (typeof navigator === "undefined" || !navigator.storage) return null;
+      if (typeof navigator.storage.estimate !== "function") return null;
+      try {
+        const estimate = await navigator.storage.estimate();
+        return {
+          quota: typeof estimate.quota === "number" ? estimate.quota : null,
+          usage: typeof estimate.usage === "number" ? estimate.usage : null,
+        };
+      } catch (error) {
+        return null;
+      }
+    };
+
+    const triggerJsonDownload = (filename, payload) => {
+      if (typeof window === "undefined" || typeof document === "undefined") return;
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 0);
+    };
+
+    const buildDiagnosticBundle = async () => {
+      const estimate = await readStorageEstimate();
+      const currentIssue = state.storageErrorCurrent.value || null;
+      const bootStorageProbe =
+        typeof window !== "undefined" && window.__bootStorageProbe ? window.__bootStorageProbe : null;
+      return {
+        exportedAt: nowIsoString(),
+        fingerprint: getAppFingerprint(),
+        location: typeof window !== "undefined" ? window.location.href : "",
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+        online:
+          typeof navigator !== "undefined" && typeof navigator.onLine === "boolean"
+            ? navigator.onLine
+            : null,
+        feedbackUrl: storageFeedbackUrl,
+        currentIssue,
+        issueLogs: Array.isArray(state.storageErrorLogs.value) ? state.storageErrorLogs.value : [],
+        storageEstimate: estimate,
+        bootStorageProbe,
+        storageSummary: readManagedStorageSummary(),
+        storageRaw: readManagedStorageRaw(),
+      };
+    };
+
+    const exportStorageDiagnosticBundle = async () => {
+      try {
+        const payload = await buildDiagnosticBundle();
+        const stamp = nowIsoString().replace(/[^\d]/g, "").slice(0, 14) || String(Date.now());
+        triggerJsonDownload(`planner-storage-diagnostic-${stamp}.json`, payload);
+      } catch (error) {
+        reportStorageIssue("diagnostic.export", "diagnostic-bundle", error, {
+          scope: "diagnostic-export",
+        });
+      }
+    };
+
+    const clearProblematicStorageKeys = () => {
+      const targets = refreshStorageClearTargets();
+      targets.forEach((key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          reportStorageIssue("storage.clear", key, error, { scope: "clear-problematic-local" });
+        }
+      });
+      targets.forEach((key) => {
+        try {
+          sessionStorage.removeItem(key);
+        } catch (error) {
+          reportStorageIssue("storage.clear", key, error, { scope: "clear-problematic-session" });
+        }
+      });
+      return targets;
+    };
+
+    const clearStorageAndReloadNow = async () => {
+      clearProblematicStorageKeys();
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.set("__clear_ts", String(Date.now()));
+        window.location.replace(url.toString());
+      }
+    };
+
+    const confirmStorageDataClearAndReload = async () => {
+      if (state.storageErrorClearCountdown.value > 0) return;
+      stopStorageClearCountdown();
+      state.storageErrorClearCountdown.value = 0;
+      state.showStorageClearConfirmModal.value = false;
+      await clearStorageAndReloadNow();
+    };
+
+    state.reportStorageIssue = reportStorageIssue;
+    if (Array.isArray(state.pendingStorageIssues) && state.pendingStorageIssues.length) {
+      const queuedIssues = state.pendingStorageIssues.slice();
+      state.pendingStorageIssues = [];
+      queuedIssues.forEach((item) => {
+        if (!item) return;
+        reportStorageIssue(item.operation, item.key, item.error, item.meta);
+      });
+    }
+    state.ignoreStorageErrors = ignoreStorageErrors;
+    state.requestIgnoreStorageErrors = requestIgnoreStorageErrors;
+    state.cancelIgnoreStorageErrors = cancelIgnoreStorageErrors;
+    state.confirmIgnoreStorageErrors = confirmIgnoreStorageErrors;
+    state.exportStorageDiagnosticBundle = exportStorageDiagnosticBundle;
+    state.requestStorageDataClear = requestStorageDataClear;
+    state.cancelStorageDataClear = cancelStorageDataClear;
+    state.confirmStorageDataClearAndReload = confirmStorageDataClearAndReload;
+    state.storageFeedbackUrl = storageFeedbackUrl;
+
+    try {
+      if (typeof window !== "undefined" && window.__bootStorageProbe && window.__bootStorageProbe.ok === false) {
+        const probe = window.__bootStorageProbe;
+        const bootError = new Error(probe && probe.errorMessage ? probe.errorMessage : "bootstrap storage probe failed");
+        if (probe && probe.errorName) {
+          bootError.name = String(probe.errorName);
+        }
+        reportStorageIssue(
+          "storage.bootstrap-probe",
+          (probe && probe.key) || "localStorage",
+          bootError,
+          { scope: "bootstrap-probe" }
+        );
+      }
+    } catch (error) {
+      // ignore bootstrap probe read errors
+    }
 
     const sanitizeState = (raw) => {
       if (!raw || typeof raw !== "object") return null;
@@ -252,7 +709,9 @@
         }
       }
     } catch (error) {
-      // ignore storage errors
+      reportStorageIssue("storage.read", state.uiStateStorageKey, error, {
+        scope: "restore-ui-state",
+      });
     }
 
     try {
@@ -261,7 +720,9 @@
         state.themePreference.value = storedTheme;
       }
     } catch (error) {
-      // ignore storage errors
+      reportStorageIssue("storage.read", state.themeModeStorageKey, error, {
+        scope: "restore-theme",
+      });
     }
 
     try {
@@ -272,7 +733,9 @@
         state.backgroundDisplayEnabled.value = true;
       }
     } catch (error) {
-      // ignore storage errors
+      reportStorageIssue("storage.read", state.backgroundDisplayStorageKey, error, {
+        scope: "restore-background-display",
+      });
     }
 
     try {
@@ -281,6 +744,9 @@
         storedPlanConfigHintVersion !== state.planConfigHintVersion;
     } catch (error) {
       state.showPlanConfigHintDot.value = true;
+      reportStorageIssue("storage.read", state.planConfigHintStorageKey, error, {
+        scope: "restore-plan-config-hint",
+      });
     }
 
     if (!restoredFilterPanelPreference && shouldCollapseFilterPanelByDefault()) {
@@ -305,17 +771,33 @@
         }
       }
     } catch (error) {
-      // ignore storage errors
+      reportStorageIssue("storage.read", state.tutorialStorageKey, error, {
+        scope: "restore-tutorial",
+      });
     }
 
     try {
       const stored = localStorage.getItem(state.marksStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
+        const schemaIssues = inspectWeaponMarksSchemaIssues(parsed);
+        if (schemaIssues.length) {
+          reportStorageIssue(
+            "storage.schema",
+            state.marksStorageKey,
+            new Error(schemaIssues[0]),
+            {
+              scope: "restore-weapon-marks-schema",
+              note: schemaIssues.slice(0, 8).join("; "),
+            }
+          );
+        }
         state.weaponMarks.value = normalizeWeaponMarks(parsed);
       }
     } catch (error) {
-      // ignore storage errors
+      reportStorageIssue("storage.read", state.marksStorageKey, error, {
+        scope: "restore-weapon-marks",
+      });
     }
 
     const readLegacyMarks = (storageKey) => {
@@ -324,6 +806,9 @@
         if (!raw) return {};
         return normalizeLegacyMarks(JSON.parse(raw));
       } catch (error) {
+        reportStorageIssue("storage.read", storageKey, error, {
+          scope: "restore-legacy-marks",
+        });
         return {};
       }
     };
@@ -338,6 +823,18 @@
       state.weaponMarks,
       (value) => {
         try {
+          const schemaIssues = inspectWeaponMarksSchemaIssues(value);
+          if (schemaIssues.length) {
+            reportStorageIssue(
+              "storage.schema",
+              state.marksStorageKey,
+              new Error(schemaIssues[0]),
+              {
+                scope: "persist-weapon-marks-schema",
+                note: schemaIssues.slice(0, 8).join("; "),
+              }
+            );
+          }
           const normalized = normalizeWeaponMarks(value);
           const keys = Object.keys(normalized || {});
           if (!keys.length) {
@@ -346,7 +843,9 @@
           }
           localStorage.setItem(state.marksStorageKey, JSON.stringify(normalized));
         } catch (error) {
-          // ignore storage errors
+          reportStorageIssue("storage.write", state.marksStorageKey, error, {
+            scope: "persist-weapon-marks",
+          });
         }
       },
       { deep: true }
@@ -381,7 +880,9 @@
         try {
           localStorage.setItem(state.uiStateStorageKey, JSON.stringify(value));
         } catch (error) {
-          // ignore storage errors
+          reportStorageIssue("storage.write", state.uiStateStorageKey, error, {
+            scope: "persist-ui-state",
+          });
         }
       },
       { deep: true }
@@ -395,7 +896,9 @@
         }
         localStorage.setItem(state.themeModeStorageKey, value);
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.themeModeStorageKey, error, {
+          scope: "persist-theme",
+        });
       }
     });
 
@@ -403,8 +906,16 @@
       try {
         localStorage.setItem(state.backgroundDisplayStorageKey, value ? "1" : "0");
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.backgroundDisplayStorageKey, error, {
+          scope: "persist-background-display",
+        });
       }
     });
+
+    if (typeof onBeforeUnmount === "function") {
+      onBeforeUnmount(() => {
+        stopStorageClearCountdown();
+      });
+    }
   };
 })();

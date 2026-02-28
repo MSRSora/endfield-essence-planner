@@ -159,6 +159,17 @@
     state.migrationConfirmCountdown = ref(0);
     state.migrationPreviewExpanded = ref(false);
     state.migrationModalScrollable = ref(false);
+    state.showStorageErrorModal = ref(false);
+    state.storageErrorIgnored = ref(false);
+    state.storageErrorCurrent = ref(null);
+    state.storageErrorLogs = ref([]);
+    state.storageErrorPreviewText = ref("");
+    state.showStorageClearConfirmModal = ref(false);
+    state.showStorageIgnoreConfirmModal = ref(false);
+    state.storageErrorClearCountdown = ref(0);
+    state.storageErrorClearTargetKeys = ref([]);
+    state.storageFeedbackUrl = "https://github.com/cmyyx/endfield-essence-planner/issues";
+    state.pendingStorageIssues = [];
 
     state.tutorialVersion = "1.0.0";
     state.tutorialActive = ref(false);

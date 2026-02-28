@@ -3,6 +3,15 @@
 
   modules.initPerf = function initPerf(ctx, state) {
     const { onMounted, onBeforeUnmount } = ctx;
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
 
     const perfAutoCooldownMs = 5000;
     const perfProbeThresholdMs = 46;
@@ -42,6 +51,9 @@
         const value = localStorage.getItem(state.perfModeStorageKey) || "";
         return value === "off" ? "standard" : value;
       } catch (error) {
+        reportStorageIssue("storage.read", state.perfModeStorageKey, error, {
+          scope: "perf.read-mode",
+        });
         return "";
       }
     };
@@ -54,7 +66,9 @@
           localStorage.removeItem(state.perfModeStorageKey);
         }
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.perfModeStorageKey, error, {
+          scope: "perf.write-mode",
+        });
       }
     };
 

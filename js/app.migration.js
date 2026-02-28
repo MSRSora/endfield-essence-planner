@@ -3,6 +3,15 @@
 
   modules.initMigration = function initMigration(ctx, state) {
     const { computed, watch, onMounted, onBeforeUnmount, nextTick } = ctx;
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
 
     const getStoredDecision = () => {
       try {
@@ -13,6 +22,9 @@
         const status = typeof parsed.status === "string" ? parsed.status : "pending";
         return { ...parsed, status };
       } catch (error) {
+        reportStorageIssue("storage.read", state.migrationStorageKey, error, {
+          scope: "migration.read-decision",
+        });
         return { status: "pending" };
       }
     };
@@ -28,7 +40,9 @@
           })
         );
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.migrationStorageKey, error, {
+          scope: "migration.save-decision",
+        });
       }
     };
 
@@ -37,7 +51,12 @@
         localStorage.removeItem(state.legacyMarksStorageKey);
         localStorage.removeItem(state.legacyExcludedKey);
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue(
+          "storage.clear",
+          `${state.legacyMarksStorageKey}|${state.legacyExcludedKey}`,
+          error,
+          { scope: "migration.clear-legacy-sources" }
+        );
       }
       state.legacyMigrationMarks.value = {};
     };

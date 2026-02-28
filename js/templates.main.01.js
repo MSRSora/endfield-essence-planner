@@ -56,7 +56,7 @@
           <button class="about-button" @click="openChangelog">{{ t("更新日志") }}</button>
           <button class="about-button" @click="openAbout">{{ t("关于") }}</button>
           <div class="secondary-menu">
-            <button class="ghost-button menu-toggle" @click="showSecondaryMenu = !showSecondaryMenu">
+            <button class="about-button menu-toggle" @click="showSecondaryMenu = !showSecondaryMenu">
               {{ t("更多设置") }}
             </button>
             <div v-if="showSecondaryMenu" class="secondary-panel">
@@ -148,6 +148,7 @@
         </div>
         <div class="hero-nav-stack">
           <div v-if="canShowAds && isAdPortrait" class="slot-hero-shell" :aria-label="t('广告位（移动端）')">
+            <div class="slot-ad-tip">{{ t("广告位") }}</div>
             <button
               class="slot-close-button"
               type="button"
@@ -219,9 +220,6 @@
           <button class="ghost-button" @click="setPerfMode('standard')">{{ t("恢复效果") }}</button>
           <button class="about-button perf-keep" @click="setPerfMode('low')">{{ t("保持低GPU") }}</button>
         </div>
-      </div>
-      <div v-if="adPreviewMode" class="slot-preview-notice">
-        {{ t("广告预览模式已开启，仅用于本地查看广告位样式。") }}
       </div>
       <main class="layout">
         <transition name="view-switch" mode="out-in">
@@ -723,6 +721,7 @@
           </div>
 
           <div v-if="canShowAds && !isAdPortrait" class="card slot-inline-card slot-inline-top" :aria-label="t('广告位（桌面端）')">
+            <div class="slot-ad-tip">{{ t("广告位") }}</div>
             <button
               class="slot-close-button"
               type="button"

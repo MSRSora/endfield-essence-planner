@@ -3,6 +3,15 @@
 
   modules.initWeapons = function initWeapons(ctx, state) {
     const { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } = ctx;
+    const reportStorageIssue = (operation, key, error, meta) => {
+      if (typeof state.reportStorageIssue === "function") {
+        state.reportStorageIssue(operation, key, error, meta);
+        return;
+      }
+      const queue = Array.isArray(state.pendingStorageIssues) ? state.pendingStorageIssues : [];
+      queue.push({ operation, key, error, meta });
+      state.pendingStorageIssues = queue.slice(-20);
+    };
 
     const weaponMap = new Map(weapons.map((weapon) => [weapon.name, weapon]));
 
@@ -102,6 +111,9 @@
       try {
         return localStorage.getItem(state.attrHintStorageKey) === "seen";
       } catch (error) {
+        reportStorageIssue("storage.read", state.attrHintStorageKey, error, {
+          scope: "weapons.read-attr-hint",
+        });
         return false;
       }
     };
@@ -110,7 +122,9 @@
       try {
         localStorage.setItem(state.attrHintStorageKey, "seen");
       } catch (error) {
-        // ignore storage errors
+        reportStorageIssue("storage.write", state.attrHintStorageKey, error, {
+          scope: "weapons.write-attr-hint",
+        });
       }
     };
 
