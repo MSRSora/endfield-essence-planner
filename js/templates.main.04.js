@@ -185,7 +185,7 @@
                 {{ t("导出数据与诊断") }}
               </button>
               <button class="about-button migration-action migration-action-warn" @click="refreshUnifiedException">
-                {{ activeUnifiedExceptionKind === "runtime" ? t("立即刷新") : t("清理数据并刷新") }}
+                {{ activeUnifiedExceptionKind === "runtime" ? t("刷新页面") : t("清理数据并刷新") }}
               </button>
               <a class="storage-feedback-button" :href="storageFeedbackUrl" target="_blank" rel="noreferrer">
                 {{ t("反馈问题") }}
@@ -287,6 +287,45 @@
         </div>
       </transition>
 
+      <div class="version-debug-badge-wrap" :class="{ 'is-update-toast-active': showUpdatePrompt }">
+        <transition name="version-badge-expand">
+          <div
+            v-if="showGameCompatWarning"
+            class="version-debug-badge-panel-float"
+            role="status"
+            aria-live="polite"
+          >
+            <p class="version-debug-badge-panel-title">
+              {{ t("网站当前适配版本为 {version}", { version: gameCompatSupportedVersion || t("未知") }) }}
+            </p>
+            <p class="version-debug-badge-panel-text">
+              {{ t("若游戏已更新至 {version}，请等待站点适配。", { version: gameCompatNextVersion || t("未知") }) }}
+            </p>
+            <div class="version-debug-badge-panel-actions">
+              <button type="button" class="ghost-button version-compat-ack" @click="dismissGameCompatWarning">
+                {{ t("我知道了") }}
+              </button>
+            </div>
+          </div>
+        </transition>
+        <button
+          type="button"
+          class="version-debug-badge"
+          :title="versionCopyFeedbackText || t('点击复制完整版本信息')"
+          @click="copyCurrentVersionInfo"
+        >
+          {{ versionBadgeDisplayText || updateCurrentVersionText || t("当前版本获取失败") }}
+        </button>
+      </div>
+      <div
+        v-if="versionCopyFeedbackText"
+        class="version-debug-copy-tip"
+        :class="{ 'is-update-toast-active': showUpdatePrompt }"
+        aria-live="polite"
+      >
+        {{ versionCopyFeedbackText }}
+      </div>
+
       <transition name="fade-scale">
         <div v-if="showUpdatePrompt" class="update-toast" role="status" aria-live="polite">
           <div class="update-toast-card">
@@ -297,7 +336,7 @@
             <div class="update-version-grid">
               <div class="update-version-row">
                 <span class="update-version-label">{{ t("当前版本") }}</span>
-                <span class="update-version-value">{{ updateCurrentVersionText || t("未知") }}</span>
+                <span class="update-version-value">{{ updateCurrentVersionText || t("当前版本获取失败") }}</span>
               </div>
               <div class="update-version-row">
                 <span class="update-version-label">{{ t("最新版本") }}</span>
